@@ -5,3 +5,6 @@ Version: 0.6.0
 Module: HydraLibraryPlugin.dll
 Type: GameLibrary
 Icon: hydra_library_icon.png
+Links:
+  - Name: GitHub
+    Url: https://github.com/renercrisostomo/PlayniteHydraLibrary
