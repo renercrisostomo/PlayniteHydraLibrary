@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Заголовок и уведомления окна настроек -->
+    <sys:String x:Key="LOCPlayniteHydra_SettingsTitle">Библиотека Hydra Launcher</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_NoAuthNote">Плагин Hydra не требует авторизации: он считывает данные о библиотеке напрямую из локальных файлов клиента Hydra Launcher.</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_TroubleshootingNote">Если при импорте игр возникли проблемы, убедитесь, что клиент Hydra Launcher установлен корректно и ваши игры отображаются в его библиотеке.</sys:String>
+
+    <!-- Раздел параметров запуска и синхронизации -->
+    <sys:String x:Key="LOCPlayniteHydra_SectionBehavior">Параметры запуска и синхронизации</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Запускать игры через Hydra (включает облачные сохранения и достижения Hydra)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_AutoSyncPlaytime">Автоматически синхронизировать время в игре с Hydra</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ImportUninstalled">Импортировать также неустановленные игры</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Обновлять обложки и иконки уже импортированных игр при обновлении библиотеки</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_AutoApplyNote">При нажатии «Сохранить» любые включенные или измененные выше параметры синхронизации (режим запуска, время в игре или обложки и иконки) автоматически применяются к играм Hydra, которые уже находятся в вашей библиотеке Playnite.</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_BtnRestoreDefaults">Восстановить по умолчанию</sys:String>
+
+    <!-- Действия запуска игры -->
+    <sys:String x:Key="LOCPlayniteHydra_ActionPlay">Играть</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ActionPlayViaHydra">Запустить через Hydra (Cloud Save и достижения)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ActionLaunchDirectExe">Запустить напрямую (.exe)</sys:String>
+
+</ResourceDictionary>
