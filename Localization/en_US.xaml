@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Settings Window Header & Notes -->
+    <sys:String x:Key="LOCPlayniteHydra_SettingsTitle">Hydra Launcher Library</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_NoAuthNote">Hydra plugin doesn&apos;t require any authentication, it takes library information from Hydra Launcher client&apos;s user data files.</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_TroubleshootingNote">If you are having issues importing games, make sure the Hydra Launcher client is properly installed and your games appear in its library.</sys:String>
+
+    <!-- Behavior Section -->
+    <sys:String x:Key="LOCPlayniteHydra_SectionBehavior">Launch and sync options</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Launch games through Hydra (enables Hydra Cloud Save &amp; achievements)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_AutoSyncPlaytime">Sync playtime with Hydra automatically</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ImportUninstalled">Also import uninstalled games</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Update covers and icons of already imported games on library refresh</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_AutoApplyNote">When you click Save, any synchronization option enabled or changed above (launch mode, playtime, or covers and icons) is automatically applied to the Hydra games already in your Playnite library.</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_BtnRestoreDefaults">Restore defaults</sys:String>
+
+    <!-- Game Play Actions -->
+    <sys:String x:Key="LOCPlayniteHydra_ActionPlay">Play</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ActionPlayViaHydra">Play via Hydra (Cloud Save &amp; Achievements)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ActionLaunchDirectExe">Play direct executable (.exe)</sys:String>
+
+</ResourceDictionary>

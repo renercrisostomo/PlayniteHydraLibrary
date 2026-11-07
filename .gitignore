@@ -1,0 +1,25 @@
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Local build scripts, packaged extensions and local test runner
+*.bat
+*.pext
+Tests/
+
+# OS files
+Thumbs.db
+.DS_Store

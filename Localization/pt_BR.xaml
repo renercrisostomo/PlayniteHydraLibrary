@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Cabeçalho e Avisos da Tela de Configurações -->
+    <sys:String x:Key="LOCPlayniteHydra_SettingsTitle">Biblioteca Hydra Launcher</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_NoAuthNote">O plugin do Hydra não requer nenhuma autenticação, ele obtém as informações da biblioteca a partir dos arquivos de dados do cliente Hydra Launcher.</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_TroubleshootingNote">Se você estiver tendo problemas para importar jogos, certifique-se de que o cliente Hydra Launcher está instalado corretamente e que seus jogos aparecem na biblioteca dele.</sys:String>
+
+    <!-- Seção de Comportamento -->
+    <sys:String x:Key="LOCPlayniteHydra_SectionBehavior">Opções de inicialização e sincronização</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Abrir jogos pelo Hydra (ativa Cloud Save e conquistas do Hydra)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_AutoSyncPlaytime">Sincronizar tempo de jogo com o Hydra automaticamente</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ImportUninstalled">Importar também jogos não instalados</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Atualizar capas e ícones de jogos já importados ao atualizar a biblioteca</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_AutoApplyNote">Ao clicar em Salvar, qualquer opção de sincronização marcada ou alterada acima (modo de inicialização, tempo de jogo ou capas e ícones) é aplicada automaticamente aos jogos do Hydra que já estão na sua biblioteca do Playnite.</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_BtnRestoreDefaults">Restaurar padrões</sys:String>
+
+    <!-- Ações de Inicialização do Jogo -->
+    <sys:String x:Key="LOCPlayniteHydra_ActionPlay">Jogar</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ActionPlayViaHydra">Abrir pelo Hydra (Cloud Save e Conquistas)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ActionLaunchDirectExe">Abrir executável direto (.exe)</sys:String>
+
+</ResourceDictionary>
