@@ -1,6 +1,6 @@
 # PlayniteHydraLibrary
 
-Readme in [🇪🇳 English](README.md)
+Readme in [🇺🇸 English](../README.md) | [🇷🇺 Русский](README.ru-RU.md)
 
 Plugin de biblioteca para o [Playnite](https://playnite.link/) que importa seus jogos do [Hydra Launcher](https://github.com/hydralauncher/hydra).
 
@@ -13,9 +13,9 @@ Plugin de biblioteca para o [Playnite](https://playnite.link/) que importa seus 
 
 ## Instalação
 
-1. Baixe o arquivo `.pext` mais recente na aba [Releases](../../releases).
+1. Baixe o arquivo `.pext` mais recente na aba [Releases](https://github.com/renercrisostomo/PlayniteHydraLibrary/releases).
 2. Abra o arquivo `.pext` (ou arraste-o para dentro da janela do Playnite).
 
 ## Traduções
 
-Os arquivos de tradução ficam na pasta `Localization/` (`en_US.xaml` e `pt_BR.xaml`). Para adicionar outro idioma, basta copiar o `en_US.xaml` com o código do idioma (ex: `es_ES.xaml`) e traduzir os textos.
+Os arquivos de tradução ficam na pasta `Localization/` (`en_US.xaml`, `pt_BR.xaml` e `ru_RU.xaml`). Para adicionar outro idioma, basta copiar o `en_US.xaml` com o código do idioma (ex: `es_ES.xaml`) e traduzir os textos.
