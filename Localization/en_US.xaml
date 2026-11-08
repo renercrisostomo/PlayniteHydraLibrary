@@ -9,11 +9,11 @@
 
     <!-- Behavior Section -->
     <sys:String x:Key="LOCPlayniteHydra_SectionBehavior">Launch and sync options</sys:String>
-    <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Launch games through Hydra (enables Hydra Cloud Save &amp; achievements)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Launch games through Hydra (starts Hydra in the background for Cloud Saves and achievements)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_RecompProtocolHint">For Recomp games, select the &quot;PC version&quot; when starting the game in Hydra and check &quot;Don&apos;t ask again&quot;.</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_AutoSyncPlaytime">Sync playtime with Hydra automatically</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_ImportUninstalled">Also import uninstalled games</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Update covers and icons of already imported games on library refresh</sys:String>
-    <sys:String x:Key="LOCPlayniteHydra_AutoApplyNote">When you click Save, any synchronization option enabled or changed above (launch mode, playtime, or covers and icons) is automatically applied to the Hydra games already in your Playnite library.</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_BtnRestoreDefaults">Restore defaults</sys:String>
 
     <!-- Game Play Actions -->

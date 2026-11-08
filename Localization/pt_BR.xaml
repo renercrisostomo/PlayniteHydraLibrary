@@ -9,11 +9,11 @@
 
     <!-- Seção de Comportamento -->
     <sys:String x:Key="LOCPlayniteHydra_SectionBehavior">Opções de inicialização e sincronização</sys:String>
-    <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Abrir jogos pelo Hydra (ativa Cloud Save e conquistas do Hydra)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Iniciar jogos pelo Hydra (abre o Hydra em segundo plano para Cloud Save e conquistas)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_RecompProtocolHint">Para jogos Recomp, selecione a &quot;Versão para PC&quot; ao iniciar o jogo no Hydra e marque &quot;Não perguntar novamente&quot;.</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_AutoSyncPlaytime">Sincronizar tempo de jogo com o Hydra automaticamente</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_ImportUninstalled">Importar também jogos não instalados</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Atualizar capas e ícones de jogos já importados ao atualizar a biblioteca</sys:String>
-    <sys:String x:Key="LOCPlayniteHydra_AutoApplyNote">Ao clicar em Salvar, qualquer opção de sincronização marcada ou alterada acima (modo de inicialização, tempo de jogo ou capas e ícones) é aplicada automaticamente aos jogos do Hydra que já estão na sua biblioteca do Playnite.</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_BtnRestoreDefaults">Restaurar padrões</sys:String>
 
     <!-- Ações de Inicialização do Jogo -->

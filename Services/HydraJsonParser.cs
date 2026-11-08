@@ -131,5 +131,38 @@ namespace HydraPlaynite.Services
                 }
             }
         }
+
+        public static List<Dictionary<string, string>> ParseJsonArrayOfObjects(string jsonArray)
+        {
+            List<Dictionary<string, string>> items = new List<Dictionary<string, string>>();
+            if (string.IsNullOrWhiteSpace(jsonArray))
+                return items;
+
+            int i = 0;
+            int n = jsonArray.Length;
+            while (i < n)
+            {
+                int start = jsonArray.IndexOf('{', i);
+                if (start == -1) break;
+
+                int scan = start;
+                SkipNestedStructure(jsonArray, ref scan, n);
+                if (scan > start)
+                {
+                    string objStr = jsonArray.Substring(start, scan - start);
+                    Dictionary<string, string> parsed = ParseTopLevelJson(objStr);
+                    if (parsed.Count > 0)
+                    {
+                        items.Add(parsed);
+                    }
+                    i = scan;
+                }
+                else
+                {
+                    i = start + 1;
+                }
+            }
+            return items;
+        }
     }
 }

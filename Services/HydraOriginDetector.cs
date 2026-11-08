@@ -34,6 +34,9 @@ namespace HydraPlaynite.Services
 
         private static bool IsEmulatorOrigin(HydraGameRecord rec, string source, string shop)
         {
+            if (rec.HasRecompilation)
+                return false;
+
             return rec.IsEmulator ||
                    source == "emulator" ||
                    shop == "emulator" ||

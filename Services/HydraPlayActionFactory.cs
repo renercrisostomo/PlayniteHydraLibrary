@@ -23,7 +23,9 @@ namespace HydraPlaynite.Services
             string labelPlayViaHydra = GetText(localizer, "LOCPlayniteHydra_ActionPlayViaHydra", "Play via Hydra (Cloud Save & Achievements)");
             string labelDirectExe = GetText(localizer, "LOCPlayniteHydra_ActionLaunchDirectExe", "Play direct executable (.exe)");
 
-            if (launchViaHydraUri && hasValidUri)
+            bool useHydraUriPrimary = launchViaHydraUri && hasValidUri;
+
+            if (useHydraUriPrimary)
             {
                 actions.Add(CreateHydraUriAction(rec, hydraUri, labelPlayViaHydra, isPrimary: true));
                 if (exeExists)
@@ -63,10 +65,14 @@ namespace HydraPlaynite.Services
                 IsPlayAction = isPrimary
             };
 
-            if (isPrimary && !string.IsNullOrWhiteSpace(rec.InstallDirectory) && Directory.Exists(rec.InstallDirectory))
+            string trackingDir = !string.IsNullOrWhiteSpace(rec.ExecutablePath)
+                ? Path.GetDirectoryName(rec.ExecutablePath)
+                : rec.InstallDirectory;
+
+            if (isPrimary && !string.IsNullOrWhiteSpace(trackingDir) && Directory.Exists(trackingDir))
             {
                 action.TrackingMode = TrackingMode.Directory;
-                action.TrackingPath = rec.InstallDirectory;
+                action.TrackingPath = trackingDir;
                 action.InitialTrackingDelay = HydraLaunchTrackingGraceSeconds;
             }
 
@@ -75,12 +81,16 @@ namespace HydraPlaynite.Services
 
         private static GameAction CreateExecutableAction(HydraGameRecord rec, string name, bool isPrimary)
         {
+            string exeDir = !string.IsNullOrWhiteSpace(rec.ExecutablePath)
+                ? Path.GetDirectoryName(rec.ExecutablePath)
+                : rec.InstallDirectory;
+
             return new GameAction
             {
                 Name = name,
                 Type = GameActionType.File,
                 Path = rec.ExecutablePath,
-                WorkingDir = rec.InstallDirectory,
+                WorkingDir = !string.IsNullOrWhiteSpace(exeDir) ? exeDir : rec.InstallDirectory,
                 Arguments = rec.LaunchOptions,
                 IsPlayAction = isPrimary
             };

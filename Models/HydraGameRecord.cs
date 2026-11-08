@@ -25,6 +25,7 @@ namespace HydraPlaynite.Models
         public bool HasActiveGogImport { get; set; }
         public bool HasGogInstallation { get; set; }
         public bool IsEmulator { get; set; }
+        public bool HasRecompilation { get; set; }
 
         // Caminhos e URLs de arte (Ícone, Capa, Fundo/Hero e Logo)
         public string CustomOriginalIconPath { get; set; }
@@ -113,9 +114,14 @@ namespace HydraPlaynite.Models
                 HasEpicInstallation = fields.ContainsKey("epicInstallation"),
                 HasActiveGogImport = IsTrueField(fields, "hasActiveGogImport"),
                 HasGogInstallation = fields.ContainsKey("gogInstallation"),
-                IsEmulator = fields.ContainsKey("romSizeBytes") ||
-                             fields.ContainsKey("selectedDiscPath") ||
-                             fields.ContainsKey("customLaunchOptions"),
+                HasRecompilation = IsTrueField(fields, "__hasRecompilation") ||
+                                   HasRecompilationMarker(fields, resolvedExePath, resolvedInstallDir),
+                IsEmulator = (fields.ContainsKey("romSizeBytes") ||
+                              fields.ContainsKey("selectedDiscPath") ||
+                              fields.ContainsKey("customLaunchOptions") ||
+                              fields.ContainsKey("platform")) &&
+                             !(IsTrueField(fields, "__hasRecompilation") ||
+                               HasRecompilationMarker(fields, resolvedExePath, resolvedInstallDir)),
 
                 CustomOriginalIconPath = GetField(fields, "customOriginalIconPath"),
                 CustomIconUrl = GetField(fields, "customIconUrl"),
@@ -187,6 +193,56 @@ namespace HydraPlaynite.Models
         {
             return !string.IsNullOrWhiteSpace(value) &&
                    value.StartsWith("local:", StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static bool HasRecompilationMarker(
+            Dictionary<string, string> fields,
+            string resolvedExePath = null,
+            string resolvedInstallDir = null)
+        {
+            if (fields != null)
+            {
+                if (fields.ContainsKey("recompilationSlug"))
+                    return true;
+
+                string discsJson = GetField(fields, "discs");
+                if (!string.IsNullOrEmpty(discsJson) &&
+                    (discsJson.IndexOf("recompilationSlug", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     discsJson.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     discsJson.IndexOf("\"isExecutable\":true", StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    return true;
+                }
+
+                string rawExe = GetField(fields, "executablePath");
+                if (!string.IsNullOrEmpty(rawExe) &&
+                    rawExe.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+
+                string selectedDisc = GetField(fields, "selectedDiscPath");
+                if (!string.IsNullOrEmpty(selectedDisc) &&
+                    (selectedDisc.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     selectedDisc.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(resolvedExePath) &&
+                resolvedExePath.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrEmpty(resolvedInstallDir) &&
+                resolvedInstallDir.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+
+            return false;
         }
     }
 }

@@ -11,7 +11,7 @@ namespace HydraPlaynite.Views
     {
         private readonly HydraLocalizer localizer;
 
-        public HydraLibrarySettingsView(HydraLibraryPlugin plugin, HydraLocalizer localizer)
+        public HydraLibrarySettingsView(HydraLibrary plugin, HydraLocalizer localizer)
         {
             this.localizer = localizer;
             if (this.localizer != null)
@@ -35,12 +35,15 @@ namespace HydraPlaynite.Views
             root.Children.Add(CreateNoAuthBanner());
 
             root.Children.Add(CreateSectionHeader("LOCPlayniteHydra_SectionBehavior", topMargin: 4));
-            root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_LaunchViaHydraUri", "LaunchViaHydraUri"));
+
+            CheckBox chkLaunchViaHydra = CreateSettingCheckBox("LOCPlayniteHydra_LaunchViaHydraUri", "LaunchViaHydraUri");
+            root.Children.Add(chkLaunchViaHydra);
+            root.Children.Add(CreateConditionalHint("LOCPlayniteHydra_RecompProtocolHint", chkLaunchViaHydra));
+
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_AutoSyncPlaytime", "AutoSyncPlaytimeOnStartup"));
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_ImportUninstalled", "ImportUninstalledGames"));
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_UpdateExistingOnRefresh", "UpdateExistingGamesOnRefresh"));
 
-            root.Children.Add(CreateAutoSaveNote("LOCPlayniteHydra_AutoApplyNote"));
             root.Children.Add(CreateRestoreDefaultsButton());
             return root;
         }
@@ -133,18 +136,27 @@ namespace HydraPlaynite.Views
             return checkBox;
         }
 
-        private TextBlock CreateAutoSaveNote(string localizationKey)
+        private TextBlock CreateConditionalHint(string localizationKey, CheckBox parentCheckBox)
         {
-            TextBlock note = new TextBlock
+            TextBlock hint = new TextBlock
             {
                 Text = T(localizationKey),
                 TextWrapping = TextWrapping.Wrap,
-                FontSize = 12.5,
-                Opacity = 0.85,
-                Margin = new Thickness(0, 14, 0, 14)
+                FontSize = 12,
+                Opacity = 0.75,
+                Margin = new Thickness(24, -2, 0, 8),
+                Visibility = Visibility.Visible
             };
-            note.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-            return note;
+            hint.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+
+            parentCheckBox.Checked += (s, e) => { hint.Visibility = Visibility.Visible; };
+            parentCheckBox.Unchecked += (s, e) => { hint.Visibility = Visibility.Collapsed; };
+            parentCheckBox.Loaded += (s, e) =>
+            {
+                hint.Visibility = (parentCheckBox.IsChecked == true) ? Visibility.Visible : Visibility.Collapsed;
+            };
+
+            return hint;
         }
 
         private Button CreateRestoreDefaultsButton()
@@ -154,7 +166,7 @@ namespace HydraPlaynite.Views
                 Content = T("LOCPlayniteHydra_BtnRestoreDefaults"),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(14, 8, 14, 8),
-                Margin = new Thickness(0, 2, 0, 10)
+                Margin = new Thickness(0, 16, 0, 10)
             };
             btnRestoreDefaults.Click += OnRestoreDefaultsClicked;
             return btnRestoreDefaults;

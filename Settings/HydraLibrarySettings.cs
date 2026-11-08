@@ -7,7 +7,7 @@ namespace HydraPlaynite.Settings
 {
     public class HydraLibrarySettings : ISettings, INotifyPropertyChanged
     {
-        private readonly HydraLibraryPlugin plugin;
+        private readonly HydraLibrary plugin;
         private HydraLibrarySettings editingSnapshot;
 
         private bool launchViaHydraUri = true;
@@ -45,7 +45,7 @@ namespace HydraPlaynite.Settings
         {
         }
 
-        public HydraLibrarySettings(HydraLibraryPlugin plugin)
+        public HydraLibrarySettings(HydraLibrary plugin)
         {
             this.plugin = plugin;
             if (plugin != null)

@@ -14,7 +14,7 @@ using Playnite.SDK.Plugins;
 
 namespace HydraPlaynite
 {
-    public class HydraLibraryPlugin : LibraryPlugin
+    public class HydraLibrary : LibraryPlugin
     {
         private static readonly ILogger logger = LogManager.GetLogger();
         public static readonly Guid PluginGuid = new Guid("8f4e3a12-6c9b-4d73-9a21-5b8d7e3f1042");
@@ -50,7 +50,7 @@ namespace HydraPlaynite
             get { return localizer; }
         }
 
-        public HydraLibraryPlugin(IPlayniteAPI api) : base(api)
+        public HydraLibrary(IPlayniteAPI api) : base(api)
         {
             pluginDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             localizer = new HydraLocalizer(api, pluginDir, logger);
@@ -110,7 +110,7 @@ namespace HydraPlaynite
 
             if (logger != null)
             {
-                logger.Info(string.Format("PlayniteHydraLibrary v0.6.0: {0} registros lidos do Hydra, {1} jogos enviados ao Playnite.", allRecords.Count, importedGames.Count));
+                logger.Info(string.Format("PlayniteHydraLibrary v0.7.0: {0} registros lidos do Hydra, {1} jogos enviados ao Playnite.", allRecords.Count, importedGames.Count));
             }
 
             return importedGames;

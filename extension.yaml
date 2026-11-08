@@ -1,8 +1,8 @@
 Id: PlayniteHydraLibrary
-Name: Hydra
-Author: Renêr
-Version: 0.6.0
-Module: HydraLibraryPlugin.dll
+Name: Hydra library integration
+Author: renercrisostomo
+Version: 0.7.0
+Module: HydraLibrary.dll
 Type: GameLibrary
 Icon: hydra_library_icon.png
 Links:

@@ -9,11 +9,11 @@
 
     <!-- Раздел параметров запуска и синхронизации -->
     <sys:String x:Key="LOCPlayniteHydra_SectionBehavior">Параметры запуска и синхронизации</sys:String>
-    <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Запускать игры через Hydra (включает облачные сохранения и достижения Hydra)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Запускать игры через Hydra (открывает Hydra в фоне для Cloud Save и достижений)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_RecompProtocolHint">Для игр Recomp выберите «Версия для ПК» при запуске игры в Hydra и отметьте «Больше не спрашивать».</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_AutoSyncPlaytime">Автоматически синхронизировать время в игре с Hydra</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_ImportUninstalled">Импортировать также неустановленные игры</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Обновлять обложки и иконки уже импортированных игр при обновлении библиотеки</sys:String>
-    <sys:String x:Key="LOCPlayniteHydra_AutoApplyNote">При нажатии «Сохранить» любые включенные или измененные выше параметры синхронизации (режим запуска, время в игре или обложки и иконки) автоматически применяются к играм Hydra, которые уже находятся в вашей библиотеке Playnite.</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_BtnRestoreDefaults">Восстановить по умолчанию</sys:String>
 
     <!-- Действия запуска игры -->

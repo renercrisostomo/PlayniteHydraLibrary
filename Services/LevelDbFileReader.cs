@@ -28,7 +28,10 @@ namespace HydraPlaynite.Services
                 {
                     allJsons.AddRange(ExtractBalancedJsonObjects(cleanLog));
                 }
-                allJsons.AddRange(ExtractBalancedJsonObjects(rawBytes));
+                if (allJsons.Count == 0)
+                {
+                    allJsons.AddRange(ExtractBalancedJsonObjects(rawBytes));
+                }
             }
             else
             {
@@ -271,6 +274,8 @@ namespace HydraPlaynite.Services
         {
             return candidate.Contains("\"title\"") ||
                    candidate.Contains("\"folderName\"") ||
+                   candidate.Contains("\"downloader\"") ||
+                   candidate.Contains("\"recompilationSlug\"") ||
                    candidate.Contains("\"executablePath\"") ||
                    candidate.Contains("\"customIconUrl\"") ||
                    candidate.Contains("\"customOriginalIconPath\"") ||
