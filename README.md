@@ -8,7 +8,7 @@ Library plugin for [Playnite](https://playnite.link/) that imports your games fr
 
 - Automatically imports your games (including Recomps) directly from your local Hydra files, without requiring login.
 - Launches games through Hydra (`hydralauncher://run`) to keep Hydra Cloud Saves and achievements working, or directly via the `.exe`.
-- Syncs playtime, last played session, and custom media (covers, icons, and background images).
+- Syncs playtime, last played session, installation status, and custom media (covers, icons, and background images).
 - Skips external store integrations inside Hydra (Steam, Epic, and emulators) to avoid duplicating your Playnite library.
 
 ## Installation

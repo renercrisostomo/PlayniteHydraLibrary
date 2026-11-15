@@ -5,6 +5,9 @@ using System.Text;
 
 namespace HydraPlaynite.Services
 {
+    /// <summary>
+    /// Leitor de baixo nível para arquivos SSTable (.ldb/.sst) e Write-Ahead Log (.log) do LevelDB.
+    /// </summary>
     public static class LevelDbFileReader
     {
         private const int LogBlockSizeBytes = 32768;
@@ -67,6 +70,10 @@ namespace HydraPlaynite.Services
             }
         }
 
+        /// <summary>
+        /// Reconstrói o fluxo contínuo de dados de um arquivo .log do LevelDB removendo
+        /// os cabeçalhos de registro de 7 bytes a cada fronteira de bloco de 32 KB.
+        /// </summary>
         public static byte[] ReadLogPayload(byte[] rawLog)
         {
             using (MemoryStream ms = new MemoryStream(rawLog.Length))
@@ -98,6 +105,9 @@ namespace HydraPlaynite.Services
             }
         }
 
+        /// <summary>
+        /// Lê o rodapé SSTable de 48 bytes de um arquivo .ldb e extrai seus blocos de dados (comprimidos ou brutos).
+        /// </summary>
         public static List<byte[]> ExtractLdbBlocks(byte[] rawLdb)
         {
             List<byte[]> blocks = new List<byte[]>();
@@ -108,8 +118,8 @@ namespace HydraPlaynite.Services
                 {
                     int fPos = rawLdb.Length - SstableFooterSizeBytes;
                     int fEnd = rawLdb.Length - 8;
-                    SnappyDecompressor.ReadVarint64(rawLdb, ref fPos, fEnd); // metaOffset
-                    SnappyDecompressor.ReadVarint64(rawLdb, ref fPos, fEnd); // metaSize
+                    SnappyDecompressor.ReadVarint64(rawLdb, ref fPos, fEnd);
+                    SnappyDecompressor.ReadVarint64(rawLdb, ref fPos, fEnd);
                     long indexOffset = SnappyDecompressor.ReadVarint64(rawLdb, ref fPos, fEnd);
                     long indexSize = SnappyDecompressor.ReadVarint64(rawLdb, ref fPos, fEnd);
 

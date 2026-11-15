@@ -7,6 +7,9 @@ using Playnite.SDK;
 
 namespace HydraPlaynite.Services
 {
+    /// <summary>
+    /// Resolve caminhos locais, URIs customizadas (local:/file:) e URLs remotas de mídias dos jogos.
+    /// </summary>
     public static class HydraAssetResolver
     {
         private const int DownloadTimeoutMilliseconds = 10000;
@@ -202,7 +205,7 @@ namespace HydraPlaynite.Services
             {
                 using (TimedWebClient client = new TimedWebClient(DownloadTimeoutMilliseconds))
                 {
-                    client.Headers.Add("User-Agent", "Mozilla/5.0 PlayniteHydraLibrary/0.7.0");
+                    client.Headers.Add("User-Agent", "Mozilla/5.0 PlayniteHydraLibrary/0.8.0");
                     client.DownloadFile(imageUrl, tempFile);
                 }
 

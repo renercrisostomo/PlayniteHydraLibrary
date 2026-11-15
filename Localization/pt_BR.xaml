@@ -16,9 +16,11 @@
     <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Atualizar capas e ícones de jogos já importados ao atualizar a biblioteca</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_BtnRestoreDefaults">Restaurar padrões</sys:String>
 
-    <!-- Ações de Inicialização do Jogo -->
+    <!-- Ações de Inicialização e Desinstalação do Jogo -->
     <sys:String x:Key="LOCPlayniteHydra_ActionPlay">Jogar</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_ActionPlayViaHydra">Abrir pelo Hydra (Cloud Save e Conquistas)</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_ActionLaunchDirectExe">Abrir executável direto (.exe)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ActionUninstall">Desinstalar pelo cliente Hydra</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ErrorClientNotFound">Instalação do Hydra Launcher não encontrada.</sys:String>
 
 </ResourceDictionary>

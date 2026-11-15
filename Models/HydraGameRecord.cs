@@ -4,6 +4,9 @@ using System.Globalization;
 
 namespace HydraPlaynite.Models
 {
+    /// <summary>
+    /// Representa o registro consolidado de um jogo extraído do banco LevelDB do Hydra Launcher.
+    /// </summary>
     public class HydraGameRecord
     {
         public string UniqueKey { get; set; }
@@ -27,7 +30,6 @@ namespace HydraPlaynite.Models
         public bool IsEmulator { get; set; }
         public bool HasRecompilation { get; set; }
 
-        // Caminhos e URLs de arte (Ícone, Capa, Fundo/Hero e Logo)
         public string CustomOriginalIconPath { get; set; }
         public string CustomIconUrl { get; set; }
         public string OriginalIconPath { get; set; }
@@ -49,32 +51,17 @@ namespace HydraPlaynite.Models
 
         public bool HasCustomIcon
         {
-            get
-            {
-                return HasValue(CustomOriginalIconPath) ||
-                       HasValue(CustomIconUrl) ||
-                       IsLocalAssetUri(IconUrl);
-            }
+            get { return HasValue(CustomOriginalIconPath) || HasValue(CustomIconUrl) || IsLocalAssetUri(IconUrl); }
         }
 
         public bool HasCustomCover
         {
-            get
-            {
-                return HasValue(CustomOriginalCoverPath) ||
-                       HasValue(CustomCoverImageUrl) ||
-                       IsLocalAssetUri(CoverImageUrl);
-            }
+            get { return HasValue(CustomOriginalCoverPath) || HasValue(CustomCoverImageUrl) || IsLocalAssetUri(CoverImageUrl); }
         }
 
         public bool HasCustomHero
         {
-            get
-            {
-                return HasValue(CustomOriginalHeroPath) ||
-                       HasValue(CustomHeroImageUrl) ||
-                       IsLocalAssetUri(LibraryHeroImageUrl);
-            }
+            get { return HasValue(CustomOriginalHeroPath) || HasValue(CustomHeroImageUrl) || IsLocalAssetUri(LibraryHeroImageUrl); }
         }
 
         public ulong GetPlaytimeInSeconds()
@@ -88,11 +75,17 @@ namespace HydraPlaynite.Models
             string uniqueKey,
             Dictionary<string, string> fields,
             string resolvedExePath,
-            string resolvedInstallDir)
+            string resolvedInstallDir,
+            ulong? resolvedInstallSizeInBytes = null)
         {
             string title = GetField(fields, "title");
             string shop = GetField(fields, "shop") ?? "custom";
             string objectId = GetField(fields, "objectId") ?? GetField(fields, "objectID") ?? title;
+            bool hasRecomp = IsTrueField(fields, "__hasRecompilation") || HasRecompilationMarker(fields, resolvedExePath, resolvedInstallDir);
+
+            ulong? fallbackJsonSize = ParseUlongField(fields, "installedSizeInBytes")
+                                      ?? ParseUlongField(fields, "sizeInBytes")
+                                      ?? ParseUlongField(fields, "romSizeBytes");
 
             return new HydraGameRecord
             {
@@ -106,7 +99,7 @@ namespace HydraPlaynite.Models
                 LaunchOptions = GetField(fields, "launchOptions"),
                 PlayTimeInMilliseconds = ParseDoubleField(fields, "playTimeInMilliseconds"),
                 LastTimePlayed = ParseDateField(fields, "lastTimePlayed"),
-                InstalledSizeInBytes = ParseUlongField(fields, "installedSizeInBytes") ?? ParseUlongField(fields, "sizeInBytes"),
+                InstalledSizeInBytes = resolvedInstallSizeInBytes ?? fallbackJsonSize,
                 IsDeleted = IsTrueField(fields, "isDeleted"),
                 Favorite = IsTrueField(fields, "favorite"),
                 HasActiveSteamImport = IsTrueField(fields, "hasActiveSteamImport"),
@@ -114,14 +107,9 @@ namespace HydraPlaynite.Models
                 HasEpicInstallation = fields.ContainsKey("epicInstallation"),
                 HasActiveGogImport = IsTrueField(fields, "hasActiveGogImport"),
                 HasGogInstallation = fields.ContainsKey("gogInstallation"),
-                HasRecompilation = IsTrueField(fields, "__hasRecompilation") ||
-                                   HasRecompilationMarker(fields, resolvedExePath, resolvedInstallDir),
-                IsEmulator = (fields.ContainsKey("romSizeBytes") ||
-                              fields.ContainsKey("selectedDiscPath") ||
-                              fields.ContainsKey("customLaunchOptions") ||
-                              fields.ContainsKey("platform")) &&
-                             !(IsTrueField(fields, "__hasRecompilation") ||
-                               HasRecompilationMarker(fields, resolvedExePath, resolvedInstallDir)),
+                HasRecompilation = hasRecomp,
+                IsEmulator = (fields.ContainsKey("romSizeBytes") || fields.ContainsKey("selectedDiscPath") || fields.ContainsKey("customLaunchOptions") || fields.ContainsKey("platform"))
+                    && !hasRecomp,
 
                 CustomOriginalIconPath = GetField(fields, "customOriginalIconPath"),
                 CustomIconUrl = GetField(fields, "customIconUrl"),
@@ -147,8 +135,11 @@ namespace HydraPlaynite.Models
         private static string GetField(Dictionary<string, string> fields, string key)
         {
             string val;
-            if (fields != null && fields.TryGetValue(key, out val) && !string.IsNullOrWhiteSpace(val))
+            if (fields != null && fields.TryGetValue(key, out val) && !string.IsNullOrWhiteSpace(val) &&
+                !string.Equals(val, "__HYDRA_NULL__", StringComparison.Ordinal))
+            {
                 return val;
+            }
             return null;
         }
 
@@ -161,15 +152,14 @@ namespace HydraPlaynite.Models
         {
             string raw = GetField(fields, key);
             double value;
-            if (!string.IsNullOrEmpty(raw) &&
-                double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+            if (!string.IsNullOrEmpty(raw) && double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
             {
                 return value;
             }
             return 0;
         }
 
-        private static ulong? ParseUlongField(Dictionary<string, string> fields, string key)
+        public static ulong? ParseUlongField(Dictionary<string, string> fields, string key)
         {
             double val = ParseDoubleField(fields, key);
             return val > 0 ? (ulong?)Math.Round(val) : null;
@@ -191,10 +181,13 @@ namespace HydraPlaynite.Models
 
         private static bool IsLocalAssetUri(string value)
         {
-            return !string.IsNullOrWhiteSpace(value) &&
-                   value.StartsWith("local:", StringComparison.OrdinalIgnoreCase);
+            return !string.IsNullOrWhiteSpace(value) && value.StartsWith("local:", StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// Identifica se o registro possui marcadores de recompilação nativa para PC,
+        /// diferenciando-o de ROMs puras executadas apenas via emulador.
+        /// </summary>
         public static bool HasRecompilationMarker(
             Dictionary<string, string> fields,
             string resolvedExePath = null,
@@ -202,8 +195,7 @@ namespace HydraPlaynite.Models
         {
             if (fields != null)
             {
-                if (fields.ContainsKey("recompilationSlug"))
-                    return true;
+                if (fields.ContainsKey("recompilationSlug")) return true;
 
                 string discsJson = GetField(fields, "discs");
                 if (!string.IsNullOrEmpty(discsJson) &&
@@ -215,8 +207,7 @@ namespace HydraPlaynite.Models
                 }
 
                 string rawExe = GetField(fields, "executablePath");
-                if (!string.IsNullOrEmpty(rawExe) &&
-                    rawExe.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0)
+                if (!string.IsNullOrEmpty(rawExe) && rawExe.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     return true;
                 }
@@ -230,14 +221,12 @@ namespace HydraPlaynite.Models
                 }
             }
 
-            if (!string.IsNullOrEmpty(resolvedExePath) &&
-                resolvedExePath.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (!string.IsNullOrEmpty(resolvedExePath) && resolvedExePath.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return true;
             }
 
-            if (!string.IsNullOrEmpty(resolvedInstallDir) &&
-                resolvedInstallDir.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (!string.IsNullOrEmpty(resolvedInstallDir) && resolvedInstallDir.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return true;
             }

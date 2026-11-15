@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using HydraPlaynite.Models;
 using Playnite.SDK;
 
 namespace HydraPlaynite.Services
 {
+    /// <summary>
+    /// Lê, mescla e consolida os registros de jogos e downloads armazenados no LevelDB do Hydra Launcher.
+    /// </summary>
     public class HydraRepository
     {
         private const double RootDirectoryBonusScore = 100.0;
@@ -18,6 +22,7 @@ namespace HydraPlaynite.Services
         private const double UnrealShippingSubfolderPenalty = 40.0;
         private const double AuxiliaryToolPenalty = 60.0;
         private const double MaxFileSizeTieBreakerScore = 15.0;
+        private const int MaxDirectoryScanFiles = 4000;
 
         private readonly ILogger logger;
 
@@ -47,6 +52,38 @@ namespace HydraPlaynite.Services
         public List<HydraGameRecord> LoadAllGames()
         {
             return LoadGamesFromDirectories(GetCandidateDatabaseDirectories());
+        }
+
+        /// <summary>
+        /// Gera uma assinatura rápida baseada no tamanho e data de modificação dos arquivos do LevelDB
+        /// para detectar alterações sem precisar reler e descomprimir os blocos.
+        /// </summary>
+        public string GetDatabaseStateSignature(IEnumerable<string> databaseDirectories = null)
+        {
+            StringBuilder sb = new StringBuilder();
+            IEnumerable<string> dirs = databaseDirectories ?? GetCandidateDatabaseDirectories();
+
+            foreach (string dbPath in dirs)
+            {
+                if (string.IsNullOrEmpty(dbPath) || !Directory.Exists(dbPath))
+                    continue;
+
+                try
+                {
+                    foreach (FileInfo file in GetOrderedLevelDbFiles(dbPath))
+                    {
+                        sb.Append(file.Name)
+                          .Append(':')
+                          .Append(file.Length)
+                          .Append(':')
+                          .Append(file.LastWriteTimeUtc.Ticks)
+                          .Append(';');
+                    }
+                }
+                catch { }
+            }
+
+            return sb.ToString();
         }
 
         public List<HydraGameRecord> LoadGamesFromDirectories(IEnumerable<string> databaseDirectories)
@@ -84,7 +121,7 @@ namespace HydraPlaynite.Services
                 Path.Combine(appData, "Hydra", "hydra-db"),
                 Path.Combine(appData, "hydralauncher", "hydra-db"),
                 Path.Combine(appData, "hydra", "hydra-db-staging"),
-                Path.Combine(appData, "Hydra", "data.db"),
+                Path.Combine(appData, "hydra", "data.db"),
                 Path.Combine(appData, "hydra", "leveldb"),
                 Path.Combine(appData, "hydra", "Local Storage", "leveldb")
             };
@@ -113,6 +150,7 @@ namespace HydraPlaynite.Services
         {
             try
             {
+                bool isWriteAheadLog = string.Equals(Path.GetExtension(filePath), ".log", StringComparison.OrdinalIgnoreCase);
                 List<string> jsonObjects = LevelDbFileReader.ReadAllJsonFromFile(filePath);
                 foreach (string json in jsonObjects)
                 {
@@ -139,7 +177,7 @@ namespace HydraPlaynite.Services
                         ? (shop + ":" + objectId)
                         : ("custom:" + fields["title"].Trim());
 
-                    MergeRecordFields(mergedRecords, uniqueKey, fields);
+                    MergeRecordFields(mergedRecords, uniqueKey, fields, allowExplicitNullClear: isWriteAheadLog);
                 }
             }
             catch (Exception ex)
@@ -164,6 +202,10 @@ namespace HydraPlaynite.Services
                    (fields.ContainsKey("folderName") && fields.ContainsKey("progress"));
         }
 
+        /// <summary>
+        /// Mescla registros da tabela de downloads impedindo que snapshots antigos de blocos SSTable
+        /// sobrescrevam um download já concluído, exceto quando o status passa a ser "removed".
+        /// </summary>
         public static void UpdateDownloadRecord(
             Dictionary<string, string> fields,
             string shop,
@@ -174,15 +216,25 @@ namespace HydraPlaynite.Services
                 return;
 
             string key = shop + ":" + objectId;
+            string incomingStatus = (GetFirstNonEmpty(fields, "status") ?? string.Empty).ToLowerInvariant();
+            bool incomingRemoved = incomingStatus == "removed";
+
             Dictionary<string, string> existing;
             if (!downloadRecords.TryGetValue(key, out existing))
             {
                 existing = new Dictionary<string, string>(fields, StringComparer.OrdinalIgnoreCase);
-                if (IsDownloadCompleted(existing))
+                if (!incomingRemoved && IsDownloadCompleted(existing))
                 {
                     existing["__completedOnce"] = "true";
                 }
                 downloadRecords[key] = existing;
+                return;
+            }
+
+            if (incomingRemoved)
+            {
+                existing["status"] = "removed";
+                existing.Remove("__completedOnce");
                 return;
             }
 
@@ -197,8 +249,6 @@ namespace HydraPlaynite.Services
                 if (string.IsNullOrWhiteSpace(kvp.Value))
                     continue;
 
-                // Em blocos .ldb do LevelDB, snapshots antigos (paused / progress menor) podem aparecer após o registro completo:
-                // nunca permite que um snapshot antigo sobrescreva um download que já concluiu (progress = 1 / status = complete).
                 if (alreadyCompleted && !incomingCompleted &&
                     (string.Equals(kvp.Key, "status", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(kvp.Key, "progress", StringComparison.OrdinalIgnoreCase) ||
@@ -240,12 +290,12 @@ namespace HydraPlaynite.Services
             if (dlFields == null || dlFields.Count == 0)
                 return true;
 
-            if (dlFields.ContainsKey("__completedOnce"))
-                return true;
-
             string status = (GetFirstNonEmpty(dlFields, "status") ?? string.Empty).ToLowerInvariant();
             if (status == "removed")
                 return false;
+
+            if (dlFields.ContainsKey("__completedOnce"))
+                return true;
 
             string extracting = (GetFirstNonEmpty(dlFields, "extracting") ?? string.Empty).ToLowerInvariant();
             string installerRunning = (GetFirstNonEmpty(dlFields, "installerRunning") ?? string.Empty).ToLowerInvariant();
@@ -342,17 +392,29 @@ namespace HydraPlaynite.Services
                    fields.ContainsKey("customHeroImageUrl");
         }
 
+        /// <summary>
+        /// Mescla campos de registros do LevelDB garantindo que registros de cache (!gameShopAssets!)
+        /// não sobrescrevam dados de registros completos de biblioteca (!games!).
+        /// </summary>
         public static void MergeRecordFields(
             Dictionary<string, Dictionary<string, string>> mergedRecords,
             string uniqueKey,
-            Dictionary<string, string> incomingFields)
+            Dictionary<string, string> incomingFields,
+            bool allowExplicitNullClear = false)
         {
             bool isFullGameRecord = HasLibraryGameMarker(incomingFields);
 
             Dictionary<string, string> target;
             if (!mergedRecords.TryGetValue(uniqueKey, out target))
             {
-                target = new Dictionary<string, string>(incomingFields, StringComparer.OrdinalIgnoreCase);
+                target = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (KeyValuePair<string, string> kvp in incomingFields)
+                {
+                    if (!string.Equals(kvp.Value, HydraJsonParser.ExplicitNullMarker, StringComparison.Ordinal))
+                    {
+                        target[kvp.Key] = kvp.Value;
+                    }
+                }
                 if (isFullGameRecord)
                 {
                     target["__isLibraryGame"] = "true";
@@ -370,6 +432,16 @@ namespace HydraPlaynite.Services
             {
                 if (string.IsNullOrWhiteSpace(prop.Value))
                     continue;
+
+                if (string.Equals(prop.Value, HydraJsonParser.ExplicitNullMarker, StringComparison.Ordinal))
+                {
+                    if (isFullGameRecord && allowExplicitNullClear &&
+                        string.Equals(prop.Key, "executablePath", StringComparison.OrdinalIgnoreCase))
+                    {
+                        target.Remove("executablePath");
+                    }
+                    continue;
+                }
 
                 if (isFullGameRecord || !target.ContainsKey(prop.Key) || string.IsNullOrWhiteSpace(target[prop.Key]))
                 {
@@ -396,8 +468,6 @@ namespace HydraPlaynite.Services
 
                 bool isDownloadInProgress = incompleteDownloads != null && incompleteDownloads.Contains(uniqueKey);
 
-                // Se o próprio registro !games! do Hydra já possui executablePath gravado pelo Hydra (ex: jogo já iniciado no Hydra),
-                // confia diretamente nele mesmo que exista algum histórico antigo na tabela de downloads.
                 string rawExePath = GetFirstNonEmpty(fields, "executablePath");
                 string exePath = ResolveExecutableOrDirectoryTarget(rawExePath, title);
                 if (!string.IsNullOrEmpty(exePath))
@@ -444,11 +514,204 @@ namespace HydraPlaynite.Services
                         ? recompInstallDir
                         : (hasCompletedDownloadFolder && Directory.Exists(downloadPath) ? downloadPath : ResolveDirectoryFromRawExe(rawExePath)));
 
-                HydraGameRecord record = HydraGameRecord.FromMergedDictionary(uniqueKey, fields, resolvedExe, resolvedInstallDir);
+                ulong? resolvedInstallSize = ResolveInstalledSizeInBytes(fields, hasRecomp, resolvedInstallDir);
+                HydraGameRecord record = HydraGameRecord.FromMergedDictionary(uniqueKey, fields, resolvedExe, resolvedInstallDir, resolvedInstallSize);
                 records.Add(record);
             }
 
             return FilterOutCustomDuplicates(records);
+        }
+
+        /// <summary>
+        /// Calcula o tamanho total instalado do jogo. Para jogos com recompilação, combina o tamanho
+        /// da imagem de disco/ROM (romSizeBytes, discs[] ou selectedDiscPath) com o tamanho dos binários da recompilação.
+        /// </summary>
+        public static ulong? ResolveInstalledSizeInBytes(
+            Dictionary<string, string> fields,
+            bool hasRecompilation,
+            string resolvedInstallDir)
+        {
+            if (fields == null)
+                return null;
+
+            ulong jsonInstalledSize = HydraGameRecord.ParseUlongField(fields, "installedSizeInBytes") ?? 0UL;
+            ulong jsonSizeInBytes = HydraGameRecord.ParseUlongField(fields, "sizeInBytes") ?? 0UL;
+            ulong jsonRomSizeBytes = HydraGameRecord.ParseUlongField(fields, "romSizeBytes") ?? 0UL;
+
+            ulong baseJsonSize = Math.Max(jsonInstalledSize, jsonSizeInBytes);
+
+            if (!hasRecompilation && jsonRomSizeBytes == 0UL && !fields.ContainsKey("discs"))
+            {
+                return baseJsonSize > 0UL ? (ulong?)baseJsonSize : null;
+            }
+
+            ulong discsRomBytes = 0UL;
+            ulong discsRecompBytes = 0UL;
+            HashSet<string> countedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            string normalizedInstallDir = NormalizeDirectoryPath(resolvedInstallDir);
+
+            string discsJson = GetFirstNonEmpty(fields, "discs");
+            if (!string.IsNullOrEmpty(discsJson))
+            {
+                List<Dictionary<string, string>> discs = HydraJsonParser.ParseJsonArrayOfObjects(discsJson);
+                foreach (Dictionary<string, string> disc in discs)
+                {
+                    string slug = GetFirstNonEmpty(disc, "recompilationSlug");
+                    string isExe = (GetFirstNonEmpty(disc, "isExecutable") ?? string.Empty).ToLowerInvariant();
+                    string discPath = GetFirstNonEmpty(disc, "path");
+
+                    bool isRecompDisc = !string.IsNullOrEmpty(slug) ||
+                                        isExe == "true" ||
+                                        (!string.IsNullOrEmpty(discPath) && discPath.IndexOf("recompilations", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                    ulong discJsonSize = HydraGameRecord.ParseUlongField(disc, "sizeBytes")
+                                         ?? HydraGameRecord.ParseUlongField(disc, "sizeInBytes")
+                                         ?? HydraGameRecord.ParseUlongField(disc, "fileSize")
+                                         ?? HydraGameRecord.ParseUlongField(disc, "romSizeBytes")
+                                         ?? 0UL;
+
+                    ulong discDiskSize = 0UL;
+                    if (!string.IsNullOrEmpty(discPath))
+                    {
+                        string resolvedDiscPath = ResolveExistingPathAcrossDrives(discPath);
+                        if (!string.IsNullOrEmpty(resolvedDiscPath) && countedPaths.Add(resolvedDiscPath))
+                        {
+                            if (File.Exists(resolvedDiscPath))
+                            {
+                                try { discDiskSize = (ulong)new FileInfo(resolvedDiscPath).Length; } catch { }
+                            }
+                            else if (Directory.Exists(resolvedDiscPath))
+                            {
+                                discDiskSize = CalculateDirectorySizeSafe(resolvedDiscPath);
+                            }
+                        }
+                    }
+
+                    ulong effectiveDiscSize = Math.Max(discJsonSize, discDiskSize);
+                    if (isRecompDisc)
+                    {
+                        discsRecompBytes += effectiveDiscSize;
+                    }
+                    else
+                    {
+                        discsRomBytes += effectiveDiscSize;
+                    }
+                }
+            }
+
+            string selectedDisc = GetFirstNonEmpty(fields, "selectedDiscPath");
+            if (!string.IsNullOrEmpty(selectedDisc))
+            {
+                string resolvedSelected = ResolveExistingPathAcrossDrives(selectedDisc);
+                if (!string.IsNullOrEmpty(resolvedSelected) &&
+                    !resolvedSelected.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
+                    !IsSubPathOf(resolvedSelected, normalizedInstallDir) &&
+                    countedPaths.Add(resolvedSelected))
+                {
+                    if (File.Exists(resolvedSelected))
+                    {
+                        try
+                        {
+                            ulong selectedFileSize = (ulong)new FileInfo(resolvedSelected).Length;
+                            if (selectedFileSize > discsRomBytes)
+                            {
+                                discsRomBytes = selectedFileSize;
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
+
+            ulong installFolderDiskBytes = 0UL;
+            if (!string.IsNullOrEmpty(resolvedInstallDir) &&
+                Directory.Exists(resolvedInstallDir) &&
+                countedPaths.Add(resolvedInstallDir))
+            {
+                installFolderDiskBytes = CalculateDirectorySizeSafe(resolvedInstallDir);
+            }
+
+            ulong effectiveRomComponent = Math.Max(jsonRomSizeBytes, discsRomBytes);
+            ulong effectiveRecompComponent = Math.Max(discsRecompBytes, installFolderDiskBytes);
+
+            if (baseJsonSize > 0UL && baseJsonSize < effectiveRomComponent && baseJsonSize > effectiveRecompComponent)
+            {
+                effectiveRecompComponent = baseJsonSize;
+            }
+
+            ulong combinedRecompTotal = effectiveRomComponent + effectiveRecompComponent;
+            ulong bestTotal = Math.Max(baseJsonSize, combinedRecompTotal);
+
+            return bestTotal > 0UL ? (ulong?)bestTotal : null;
+        }
+
+        public static ulong CalculateDirectorySizeSafe(string directoryPath)
+        {
+            if (string.IsNullOrWhiteSpace(directoryPath) || !Directory.Exists(directoryPath) || IsBroadSharedDirectory(directoryPath))
+                return 0UL;
+
+            try
+            {
+                ulong totalBytes = 0UL;
+                int fileCount = 0;
+                DirectoryInfo dirInfo = new DirectoryInfo(directoryPath);
+                foreach (FileInfo file in dirInfo.EnumerateFiles("*", SearchOption.AllDirectories))
+                {
+                    if (file.Length > 0)
+                    {
+                        totalBytes += (ulong)file.Length;
+                    }
+                    fileCount++;
+                    if (fileCount >= MaxDirectoryScanFiles)
+                        break;
+                }
+                return totalBytes;
+            }
+            catch
+            {
+                return 0UL;
+            }
+        }
+
+        private static bool IsBroadSharedDirectory(string directoryPath)
+        {
+            try
+            {
+                string trimmed = directoryPath.TrimEnd('\\', '/');
+                if (trimmed.Length <= 3)
+                    return true;
+
+                string folderName = (Path.GetFileName(trimmed) ?? string.Empty).ToLowerInvariant();
+                return folderName == "games" ||
+                       folderName == "jogos" ||
+                       folderName == "recompilations" ||
+                       folderName == "roms" ||
+                       folderName == "downloads" ||
+                       folderName == "program files" ||
+                       folderName == "program files (x86)";
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        private static string NormalizeDirectoryPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return string.Empty;
+            return path.Replace('/', '\\').TrimEnd('\\');
+        }
+
+        private static bool IsSubPathOf(string candidatePath, string parentDirNormalized)
+        {
+            if (string.IsNullOrEmpty(candidatePath) || string.IsNullOrEmpty(parentDirNormalized))
+                return false;
+
+            string candidateNorm = NormalizeDirectoryPath(candidatePath);
+            return string.Equals(candidateNorm, parentDirNormalized, StringComparison.OrdinalIgnoreCase) ||
+                   candidateNorm.StartsWith(parentDirNormalized + "\\", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string ResolveExecutableOrDirectoryTarget(string pathCandidate, string title)
@@ -516,7 +779,7 @@ namespace HydraPlaynite.Services
                             if (File.Exists(resolved) && resolved.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                             {
                                 recompExePath = resolved;
-                                recompInstallDir = Path.GetDirectoryName(resolved);
+                                recompInstallDir = ResolveRootInstallDirectoryFromExe(resolved);
                                 return true;
                             }
                             if (Directory.Exists(resolved))
@@ -552,7 +815,7 @@ namespace HydraPlaynite.Services
                     if (File.Exists(resolvedSelected) && resolvedSelected.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
                     {
                         recompExePath = resolvedSelected;
-                        recompInstallDir = Path.GetDirectoryName(resolvedSelected);
+                        recompInstallDir = ResolveRootInstallDirectoryFromExe(resolvedSelected);
                         return true;
                     }
                     if (Directory.Exists(resolvedSelected))
@@ -717,6 +980,10 @@ namespace HydraPlaynite.Services
             return BinarySubfolderNames.Any(sub => string.Equals(sub, folderName, StringComparison.OrdinalIgnoreCase));
         }
 
+        /// <summary>
+        /// Seleciona o executável principal do jogo na pasta de instalação através de pontuação heurística,
+        /// priorizando a raiz, correspondência com o título e descartando desinstaladores/utilitários.
+        /// </summary>
         public static string FindBestExecutableInFolder(string rootFolder, string gameTitle = null)
         {
             if (string.IsNullOrWhiteSpace(rootFolder) || !Directory.Exists(rootFolder))
@@ -835,8 +1102,11 @@ namespace HydraPlaynite.Services
             foreach (string key in keys)
             {
                 string val;
-                if (fields.TryGetValue(key, out val) && !string.IsNullOrWhiteSpace(val))
+                if (fields.TryGetValue(key, out val) && !string.IsNullOrWhiteSpace(val) &&
+                    !string.Equals(val, HydraJsonParser.ExplicitNullMarker, StringComparison.Ordinal))
+                {
                     return val.Trim();
+                }
             }
             return null;
         }

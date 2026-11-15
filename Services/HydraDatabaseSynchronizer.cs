@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using HydraPlaynite.Client;
 using HydraPlaynite.Models;
 using HydraPlaynite.Settings;
 using Playnite.SDK;
@@ -9,6 +10,9 @@ using Playnite.SDK.Models;
 
 namespace HydraPlaynite.Services
 {
+    /// <summary>
+    /// Sincroniza jogos já presentes no banco do Playnite com os dados mais recentes do Hydra Launcher.
+    /// </summary>
     public class HydraDatabaseSynchronizer
     {
         private readonly IPlayniteAPI api;
@@ -38,6 +42,7 @@ namespace HydraPlaynite.Services
             List<HydraGameRecord> preloadedRecords = null)
         {
             int updatedCount = 0;
+
             try
             {
                 List<HydraGameRecord> records = preloadedRecords ?? repository.LoadAllGames();
@@ -57,8 +62,6 @@ namespace HydraPlaynite.Services
                         HydraGameRecord record;
                         if (!activeHydraRecordsByKey.TryGetValue(game.GameId, out record))
                         {
-                            // O jogo foi removido do Hydra (isDeleted = true ou não existe mais no banco do Hydra):
-                            // Ignora sincronização de dados do Hydra com segurança e apenas valida se os arquivos locais ainda existem.
                             if (SyncInstallationStateForRemovedHydraGame(game))
                             {
                                 api.Database.Games.Update(game);
@@ -108,8 +111,7 @@ namespace HydraPlaynite.Services
         public static Dictionary<string, HydraGameRecord> IndexActiveRecordsByKey(List<HydraGameRecord> records)
         {
             Dictionary<string, HydraGameRecord> byKey = new Dictionary<string, HydraGameRecord>(StringComparer.OrdinalIgnoreCase);
-            if (records == null)
-                return byKey;
+            if (records == null) return byKey;
 
             foreach (HydraGameRecord record in records)
             {
@@ -121,13 +123,23 @@ namespace HydraPlaynite.Services
 
                 byKey[record.UniqueKey] = record;
             }
+
             return byKey;
         }
 
-        private static bool SyncInstallationState(Game game, HydraGameRecord record)
+        /// <summary>
+        /// Sincroniza o estado de instalação e limpa flags de desinstalação interrompidas caso não haja watcher ativo.
+        /// </summary>
+        public static bool SyncInstallationState(Game game, HydraGameRecord record)
         {
             bool changed = false;
             bool isInstalledOnDisk = !string.IsNullOrWhiteSpace(record.ExecutablePath) && File.Exists(record.ExecutablePath);
+
+            if (game.IsUninstalling && !HydraUninstallController.IsUninstallActive(game.Id))
+            {
+                game.IsUninstalling = false;
+                changed = true;
+            }
 
             if (game.IsInstalled != isInstalledOnDisk)
             {
@@ -135,7 +147,8 @@ namespace HydraPlaynite.Services
                 changed = true;
             }
 
-            if (isInstalledOnDisk && !string.IsNullOrWhiteSpace(record.InstallDirectory) &&
+            if (isInstalledOnDisk &&
+                !string.IsNullOrWhiteSpace(record.InstallDirectory) &&
                 !string.Equals(game.InstallDirectory, record.InstallDirectory, StringComparison.OrdinalIgnoreCase))
             {
                 game.InstallDirectory = record.InstallDirectory;
@@ -145,23 +158,53 @@ namespace HydraPlaynite.Services
             return changed;
         }
 
-        private static bool SyncInstallationStateForRemovedHydraGame(Game game)
+        /// <summary>
+        /// Atualiza o estado de instalação de jogos que foram removidos da biblioteca do Hydra Launcher.
+        /// </summary>
+        public static bool SyncInstallationStateForRemovedHydraGame(Game game)
         {
+            bool changed = false;
+
+            if (game.IsUninstalling && !HydraUninstallController.IsUninstallActive(game.Id))
+            {
+                game.IsUninstalling = false;
+                changed = true;
+            }
+
             if (!game.IsInstalled)
-                return false;
+                return changed;
+
+            if (game.GameActions != null)
+            {
+                foreach (GameAction action in game.GameActions)
+                {
+                    if (action != null && action.Type == GameActionType.File && !string.IsNullOrWhiteSpace(action.Path))
+                    {
+                        if (File.Exists(action.Path))
+                            return changed;
+
+                        game.IsInstalled = false;
+                        return true;
+                    }
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(game.InstallDirectory) && Directory.Exists(game.InstallDirectory))
-                return false;
+            {
+                string remainingExe = HydraRepository.FindBestExecutableInFolder(game.InstallDirectory, game.Name);
+                if (!string.IsNullOrEmpty(remainingExe))
+                    return changed;
+            }
 
             game.IsInstalled = false;
             return true;
         }
 
-        private static bool SyncPlaytimeAndInstallSize(Game game, HydraGameRecord record)
+        public static bool SyncPlaytimeAndInstallSize(Game game, HydraGameRecord record)
         {
             bool changed = false;
-
             ulong hydraPlaytimeSeconds = record.GetPlaytimeInSeconds();
+
             if (hydraPlaytimeSeconds > game.Playtime)
             {
                 game.Playtime = hydraPlaytimeSeconds;
@@ -174,7 +217,9 @@ namespace HydraPlaynite.Services
                 changed = true;
             }
 
-            if (record.InstalledSizeInBytes != null && game.InstallSize == null)
+            if (record.InstalledSizeInBytes != null &&
+                record.InstalledSizeInBytes > 0 &&
+                game.InstallSize != record.InstalledSizeInBytes)
             {
                 game.InstallSize = record.InstalledSizeInBytes;
                 changed = true;
@@ -251,25 +296,24 @@ namespace HydraPlaynite.Services
         private bool TryReplaceDatabaseMediaFile(Guid gameId, string currentFileId, string candidatePathOrUrl, out string newFileId)
         {
             newFileId = null;
-            if (string.IsNullOrEmpty(candidatePathOrUrl))
-                return false;
+            if (string.IsNullOrEmpty(candidatePathOrUrl)) return false;
 
             newFileId = HydraAssetResolver.ImportFileIntoPlayniteDb(api, candidatePathOrUrl, gameId);
-            if (string.IsNullOrEmpty(newFileId))
-                return false;
+            if (string.IsNullOrEmpty(newFileId)) return false;
 
             if (!string.IsNullOrEmpty(currentFileId))
             {
                 try { api.Database.RemoveFile(currentFileId); } catch { }
             }
+
             return true;
         }
 
         private GameSource GetOrCreateSource(string sourceName)
         {
             string normalizedName = string.IsNullOrWhiteSpace(sourceName) ? "Hydra" : sourceName;
-            GameSource existing = api.Database.Sources.FirstOrDefault(s =>
-                string.Equals(s.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
+            GameSource existing = api.Database.Sources.FirstOrDefault(
+                s => string.Equals(s.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
 
             return existing ?? api.Database.Sources.Add(normalizedName);
         }

@@ -6,6 +6,9 @@ using Playnite.SDK;
 
 namespace HydraPlaynite.Client
 {
+    /// <summary>
+    /// Representa o cliente desktop do Hydra Launcher para abertura direta pelo Playnite.
+    /// </summary>
     public class HydraClient : LibraryClient
     {
         private readonly string iconPath;

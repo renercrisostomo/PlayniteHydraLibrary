@@ -5,16 +5,21 @@ using System.Text;
 
 namespace HydraPlaynite.Services
 {
+    /// <summary>
+    /// Parser leve de objetos e arrays JSON extraídos dos blocos brutos do LevelDB.
+    /// </summary>
     public static class HydraJsonParser
     {
+        public const string ExplicitNullMarker = "__HYDRA_NULL__";
+
         public static Dictionary<string, string> ParseTopLevelJson(string json)
         {
             Dictionary<string, string> dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (string.IsNullOrEmpty(json))
-                return dict;
+            if (string.IsNullOrEmpty(json)) return dict;
 
             int i = 0;
             int n = json.Length;
+
             while (i < n && json[i] != '{') i++;
             i++;
 
@@ -22,9 +27,10 @@ namespace HydraPlaynite.Services
             {
                 SkipWhitespace(json, ref i, n);
                 if (i >= n || json[i] == '}') break;
-                if (json[i] == ',') { i++; continue; }
 
+                if (json[i] == ',') { i++; continue; }
                 if (json[i] != '"') break;
+
                 string key = ReadJsonString(json, ref i, n);
 
                 SkipWhitespace(json, ref i, n);
@@ -52,7 +58,14 @@ namespace HydraPlaynite.Services
                         i++;
 
                     string rawVal = json.Substring(start, i - start);
-                    if (!string.Equals(rawVal, "null", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(rawVal, "null", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (string.Equals(key, "executablePath", StringComparison.OrdinalIgnoreCase))
+                        {
+                            dict[key] = ExplicitNullMarker;
+                        }
+                    }
+                    else
                     {
                         dict[key] = rawVal;
                     }
@@ -71,10 +84,12 @@ namespace HydraPlaynite.Services
         {
             StringBuilder sb = new StringBuilder();
             i++;
+
             while (i < n)
             {
                 char c = s[i++];
                 if (c == '"') break;
+
                 if (c == '\\' && i < n)
                 {
                     char esc = s[i++];
@@ -98,7 +113,9 @@ namespace HydraPlaynite.Services
                                 i += 4;
                             }
                             break;
-                        default: sb.Append(esc); break;
+                        default:
+                            sb.Append(esc);
+                            break;
                     }
                 }
                 else
@@ -106,6 +123,7 @@ namespace HydraPlaynite.Services
                     sb.Append(c);
                 }
             }
+
             return sb.ToString();
         }
 
@@ -114,12 +132,14 @@ namespace HydraPlaynite.Services
             int depth = 0;
             bool inStr = false;
             bool esc = false;
+
             while (i < n)
             {
                 char c = s[i++];
                 if (esc) { esc = false; continue; }
                 if (c == '\\') { if (inStr) esc = true; continue; }
                 if (c == '"') { inStr = !inStr; continue; }
+
                 if (!inStr)
                 {
                     if (c == '{' || c == '[') depth++;
@@ -135,8 +155,7 @@ namespace HydraPlaynite.Services
         public static List<Dictionary<string, string>> ParseJsonArrayOfObjects(string jsonArray)
         {
             List<Dictionary<string, string>> items = new List<Dictionary<string, string>>();
-            if (string.IsNullOrWhiteSpace(jsonArray))
-                return items;
+            if (string.IsNullOrWhiteSpace(jsonArray)) return items;
 
             int i = 0;
             int n = jsonArray.Length;
@@ -162,6 +181,7 @@ namespace HydraPlaynite.Services
                     i = start + 1;
                 }
             }
+
             return items;
         }
     }

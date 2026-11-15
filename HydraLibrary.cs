@@ -14,6 +14,9 @@ using Playnite.SDK.Plugins;
 
 namespace HydraPlaynite
 {
+    /// <summary>
+    /// Plugin de integração de biblioteca do Hydra Launcher para o Playnite.
+    /// </summary>
     public class HydraLibrary : LibraryPlugin
     {
         private static readonly ILogger logger = LogManager.GetLogger();
@@ -75,6 +78,16 @@ namespace HydraPlaynite
             return new HydraLibrarySettingsView(this, localizer);
         }
 
+        public override IEnumerable<UninstallController> GetUninstallActions(GetUninstallActionsArgs args)
+        {
+            if (args.Game.PluginId != Id)
+            {
+                yield break;
+            }
+
+            yield return new HydraUninstallController(args.Game, repository, new HydraClient(LibraryIcon), localizer, logger);
+        }
+
         public int ApplySettingsOnSave(bool forceUpdateActions, bool forceUpdateArtwork)
         {
             return synchronizer.SynchronizeExistingGames(settings, forceUpdateActions: forceUpdateActions, forceUpdateArtwork: forceUpdateArtwork);
@@ -89,14 +102,11 @@ namespace HydraPlaynite
 
             List<HydraGameRecord> allRecords = repository.LoadAllGames();
 
-            if (settings.AutoSyncPlaytimeOnStartup || settings.UpdateExistingGamesOnRefresh)
-            {
-                synchronizer.SynchronizeExistingGames(
-                    settings,
-                    forceUpdateActions: settings.UpdateExistingGamesOnRefresh,
-                    forceUpdateArtwork: settings.UpdateExistingGamesOnRefresh,
-                    preloadedRecords: allRecords);
-            }
+            synchronizer.SynchronizeExistingGames(
+                settings,
+                forceUpdateActions: settings.UpdateExistingGamesOnRefresh,
+                forceUpdateArtwork: settings.UpdateExistingGamesOnRefresh,
+                preloadedRecords: allRecords);
 
             List<GameMetadata> importedGames = new List<GameMetadata>();
             foreach (HydraGameRecord record in allRecords)
@@ -110,7 +120,7 @@ namespace HydraPlaynite
 
             if (logger != null)
             {
-                logger.Info(string.Format("PlayniteHydraLibrary v0.7.0: {0} registros lidos do Hydra, {1} jogos enviados ao Playnite.", allRecords.Count, importedGames.Count));
+                logger.Info(string.Format("PlayniteHydraLibrary v0.8.0: {0} registros lidos do Hydra, {1} jogos enviados ao Playnite.", allRecords.Count, importedGames.Count));
             }
 
             return importedGames;

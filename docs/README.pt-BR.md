@@ -8,7 +8,7 @@ Plugin de biblioteca para o [Playnite](https://playnite.link/) que importa seus 
 
 - Importa automaticamente seus jogos (inclusive Recomps) direto dos arquivos locais do Hydra, sem precisar de login.
 - Inicia os jogos pelo Hydra (`hydralauncher://run`) para manter o Cloud Save e as conquistas do Hydra funcionando, ou direto pelo `.exe`.
-- Sincroniza tempo de jogo, última sessão e mídias personalizadas (capas, ícones e imagens de fundo).
+- Sincroniza tempo de jogo, última sessão, status de instalação e mídias personalizadas (capas, ícones e imagens de fundo).
 - Ignora integrações de outras lojas dentro do Hydra (Steam, Epic e emuladores) para não duplicar sua biblioteca no Playnite.
 
 ## Instalação

@@ -2,6 +2,9 @@ using System;
 
 namespace HydraPlaynite.Services
 {
+    /// <summary>
+    /// Descompressor Snappy puro em C# para leitura de blocos SSTable do LevelDB.
+    /// </summary>
     public static class SnappyDecompressor
     {
         private const int MaxUncompressedBlockSizeBytes = 64 * 1024 * 1024;

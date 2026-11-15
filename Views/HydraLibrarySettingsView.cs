@@ -33,7 +33,6 @@ namespace HydraPlaynite.Views
 
             root.Children.Add(CreateHeaderTitle("LOCPlayniteHydra_SettingsTitle"));
             root.Children.Add(CreateNoAuthBanner());
-
             root.Children.Add(CreateSectionHeader("LOCPlayniteHydra_SectionBehavior", topMargin: 4));
 
             CheckBox chkLaunchViaHydra = CreateSettingCheckBox("LOCPlayniteHydra_LaunchViaHydraUri", "LaunchViaHydraUri");
@@ -43,8 +42,8 @@ namespace HydraPlaynite.Views
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_AutoSyncPlaytime", "AutoSyncPlaytimeOnStartup"));
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_ImportUninstalled", "ImportUninstalledGames"));
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_UpdateExistingOnRefresh", "UpdateExistingGamesOnRefresh"));
-
             root.Children.Add(CreateRestoreDefaultsButton());
+
             return root;
         }
 

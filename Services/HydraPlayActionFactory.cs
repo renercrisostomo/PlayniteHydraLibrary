@@ -6,6 +6,9 @@ using Playnite.SDK.Models;
 
 namespace HydraPlaynite.Services
 {
+    /// <summary>
+    /// Constrói as ações de inicialização do jogo (via protocolo hydralauncher://run e via executável direto).
+    /// </summary>
     public static class HydraPlayActionFactory
     {
         public const int HydraLaunchTrackingGraceSeconds = 15;

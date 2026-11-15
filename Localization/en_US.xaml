@@ -16,9 +16,11 @@
     <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Update covers and icons of already imported games on library refresh</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_BtnRestoreDefaults">Restore defaults</sys:String>
 
-    <!-- Game Play Actions -->
+    <!-- Game Play & Uninstall Actions -->
     <sys:String x:Key="LOCPlayniteHydra_ActionPlay">Play</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_ActionPlayViaHydra">Play via Hydra (Cloud Save &amp; Achievements)</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_ActionLaunchDirectExe">Play direct executable (.exe)</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ActionUninstall">Uninstall using Hydra client</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ErrorClientNotFound">Hydra Launcher installation not found.</sys:String>
 
 </ResourceDictionary>

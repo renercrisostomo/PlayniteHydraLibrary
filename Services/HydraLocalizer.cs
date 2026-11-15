@@ -8,6 +8,9 @@ using Playnite.SDK;
 
 namespace HydraPlaynite.Services
 {
+    /// <summary>
+    /// Gerencia o carregamento de arquivos de tradução XAML com fallback automático para inglês (en_US).
+    /// </summary>
     public class HydraLocalizer
     {
         private const string FallbackLanguageFile = "en_US.xaml";
@@ -29,10 +32,8 @@ namespace HydraPlaynite.Services
         {
             translations.Clear();
 
-            // 1. Carrega sempre o Inglês (en_US.xaml) como base de segurança
             LoadXamlDictionaryFile(Path.Combine(localizationDirectory, FallbackLanguageFile));
 
-            // 2. Sobrepõe com o arquivo do idioma ativo no Playnite (ex: pt_BR.xaml)
             string activeLanguage = ResolveActiveLanguageCode();
             if (!string.Equals(activeLanguage, "en_US", StringComparison.OrdinalIgnoreCase))
             {
