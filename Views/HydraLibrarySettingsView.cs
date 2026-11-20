@@ -43,9 +43,7 @@ namespace HydraPlaynite.Views
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_ImportInstalled", "ImportInstalledGames"));
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_ImportUninstalled", "ImportUninstalledGames"));
 
-            CheckBox chkLaunchViaHydra = CreateSettingCheckBox("LOCPlayniteHydra_LaunchViaHydraUri", "LaunchViaHydraUri");
-            root.Children.Add(chkLaunchViaHydra);
-            root.Children.Add(CreateConditionalHint("LOCPlayniteHydra_RecompProtocolHint", chkLaunchViaHydra));
+            root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_LaunchViaHydraUri", "LaunchViaHydraUri"));
 
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_AutoSyncPlaytime", "AutoSyncPlaytimeOnStartup"));
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_KeepInstalledIfFilesExist", "KeepInstalledIfFilesExistOnDisk"));
@@ -143,29 +141,7 @@ namespace HydraPlaynite.Views
 
             return checkBox;
         }
-
-        private TextBlock CreateConditionalHint(string localizationKey, CheckBox parentCheckBox)
-        {
-            TextBlock hint = new TextBlock
-            {
-                Text = T(localizationKey),
-                TextWrapping = TextWrapping.Wrap,
-                FontSize = 12,
-                Opacity = 0.75,
-                Margin = new Thickness(24, -2, 0, 8),
-                Visibility = Visibility.Visible
-            };
-            hint.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-
-            parentCheckBox.Checked += (s, e) => { hint.Visibility = Visibility.Visible; };
-            parentCheckBox.Unchecked += (s, e) => { hint.Visibility = Visibility.Collapsed; };
-            parentCheckBox.Loaded += (s, e) =>
-            {
-                hint.Visibility = (parentCheckBox.IsChecked == true) ? Visibility.Visible : Visibility.Collapsed;
-            };
-
-            return hint;
-        }
+
 
         private Button CreateRestoreDefaultsButton()
         {

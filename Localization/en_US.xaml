@@ -10,9 +10,9 @@
     <!-- Behavior Section -->
     <sys:String x:Key="LOCPlayniteHydra_SectionBehavior">Launch and sync options</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Launch games through Hydra (starts Hydra in the background for Cloud Saves and achievements)</sys:String>
-    <sys:String x:Key="LOCPlayniteHydra_RecompProtocolHint">For Recomp games, select the &quot;PC version&quot; when starting the game in Hydra and check &quot;Don&apos;t ask again&quot;.</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_AutoSyncPlaytime">Sync playtime with Hydra automatically</sys:String>
-    <sys:String x:Key="LOCPlayniteHydra_ImportInstalled">Import installed games</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ImportInstalled">Import installed games</sys:String>
+
     <sys:String x:Key="LOCPlayniteHydra_ImportUninstalled">Import not installed games</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_KeepInstalledIfFilesExist">Keep games marked as installed if their files still exist on disk (even if removed or unlinked in Hydra)</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Update covers and icons of already imported games on library refresh</sys:String>
