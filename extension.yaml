@@ -1,7 +1,7 @@
 Id: PlayniteHydraLibrary
 Name: Hydra library integration
 Author: renercrisostomo
-Version: 0.8.0
+Version: 0.9.0
 Module: HydraLibrary.dll
 Type: GameLibrary
 Icon: hydra_library_icon.png

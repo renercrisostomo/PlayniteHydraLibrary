@@ -13,7 +13,9 @@ namespace HydraPlaynite.Settings
         private bool launchViaHydraUri = true;
         private bool autoSyncPlaytimeOnStartup = true;
         private bool updateExistingGamesOnRefresh = false;
+        private bool importInstalledGames = true;
         private bool importUninstalledGames = false;
+        private bool keepInstalledIfFilesExistOnDisk = false;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -35,10 +37,22 @@ namespace HydraPlaynite.Settings
             set { SetValue(ref updateExistingGamesOnRefresh, value); }
         }
 
+        public bool ImportInstalledGames
+        {
+            get { return importInstalledGames; }
+            set { SetValue(ref importInstalledGames, value); }
+        }
+
         public bool ImportUninstalledGames
         {
             get { return importUninstalledGames; }
             set { SetValue(ref importUninstalledGames, value); }
+        }
+
+        public bool KeepInstalledIfFilesExistOnDisk
+        {
+            get { return keepInstalledIfFilesExistOnDisk; }
+            set { SetValue(ref keepInstalledIfFilesExistOnDisk, value); }
         }
 
         public HydraLibrarySettings()
@@ -70,7 +84,9 @@ namespace HydraPlaynite.Settings
             LaunchViaHydraUri = source.LaunchViaHydraUri;
             AutoSyncPlaytimeOnStartup = source.AutoSyncPlaytimeOnStartup;
             UpdateExistingGamesOnRefresh = source.UpdateExistingGamesOnRefresh;
+            ImportInstalledGames = source.ImportInstalledGames;
             ImportUninstalledGames = source.ImportUninstalledGames;
+            KeepInstalledIfFilesExistOnDisk = source.KeepInstalledIfFilesExistOnDisk;
         }
 
         public void BeginEdit()
@@ -91,17 +107,15 @@ namespace HydraPlaynite.Settings
         {
             if (plugin == null) return;
 
-            bool launchModeChanged = editingSnapshot == null || editingSnapshot.LaunchViaHydraUri != LaunchViaHydraUri;
             bool syncPlaytimeJustChecked = AutoSyncPlaytimeOnStartup && (editingSnapshot == null || !editingSnapshot.AutoSyncPlaytimeOnStartup);
             bool updateArtworkJustChecked = UpdateExistingGamesOnRefresh && (editingSnapshot == null || !editingSnapshot.UpdateExistingGamesOnRefresh);
+            bool keepInstalledChanged = editingSnapshot == null || editingSnapshot.KeepInstalledIfFilesExistOnDisk != KeepInstalledIfFilesExistOnDisk;
 
             plugin.SavePluginSettings(this);
 
-            if (launchModeChanged || syncPlaytimeJustChecked || updateArtworkJustChecked)
+            if (syncPlaytimeJustChecked || updateArtworkJustChecked || keepInstalledChanged)
             {
-                plugin.ApplySettingsOnSave(
-                    forceUpdateActions: launchModeChanged || updateArtworkJustChecked,
-                    forceUpdateArtwork: updateArtworkJustChecked);
+                plugin.ApplySettingsOnSave(forceUpdateArtwork: updateArtworkJustChecked);
             }
         }
 

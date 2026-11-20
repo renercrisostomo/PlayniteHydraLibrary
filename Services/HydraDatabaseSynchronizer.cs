@@ -37,8 +37,7 @@ namespace HydraPlaynite.Services
 
         public int SynchronizeExistingGames(
             HydraLibrarySettings settings,
-            bool forceUpdateActions,
-            bool forceUpdateArtwork,
+            bool forceUpdateArtwork = false,
             List<HydraGameRecord> preloadedRecords = null)
         {
             int updatedCount = 0;
@@ -48,8 +47,7 @@ namespace HydraPlaynite.Services
                 List<HydraGameRecord> records = preloadedRecords ?? repository.LoadAllGames();
                 Dictionary<string, HydraGameRecord> activeHydraRecordsByKey = IndexActiveRecordsByKey(records);
 
-                bool syncPlaytime = settings.AutoSyncPlaytimeOnStartup || forceUpdateActions || settings.UpdateExistingGamesOnRefresh;
-                bool syncActions = forceUpdateActions || settings.UpdateExistingGamesOnRefresh;
+                bool syncPlaytime = settings.AutoSyncPlaytimeOnStartup || settings.UpdateExistingGamesOnRefresh;
                 bool syncArtwork = forceUpdateArtwork || settings.UpdateExistingGamesOnRefresh;
 
                 using (api.Database.BufferedUpdate())
@@ -62,7 +60,11 @@ namespace HydraPlaynite.Services
                         HydraGameRecord record;
                         if (!activeHydraRecordsByKey.TryGetValue(game.GameId, out record))
                         {
-                            if (SyncInstallationStateForRemovedHydraGame(game))
+                            bool removedChanged = false;
+                            removedChanged |= SyncInstallationStateForRemovedHydraGame(game, settings.KeepInstalledIfFilesExistOnDisk);
+                            removedChanged |= MigrateLegacyPluginActions(game);
+
+                            if (removedChanged)
                             {
                                 api.Database.Games.Update(game);
                                 updatedCount++;
@@ -72,16 +74,13 @@ namespace HydraPlaynite.Services
 
                         bool changed = false;
 
-                        changed |= SyncInstallationState(game, record);
+                        changed |= SyncInstallationState(game, record, settings.KeepInstalledIfFilesExistOnDisk);
+                        changed |= SyncSource(game);
+                        changed |= MigrateLegacyPluginActions(game);
 
                         if (syncPlaytime)
                         {
                             changed |= SyncPlaytimeAndInstallSize(game, record);
-                        }
-
-                        if (syncActions)
-                        {
-                            changed |= SyncSourceAndPlayActions(game, record, settings);
                         }
 
                         if (syncArtwork)
@@ -101,7 +100,7 @@ namespace HydraPlaynite.Services
             {
                 if (logger != null)
                 {
-                    logger.Error(ex, "HydraDatabaseSynchronizer: Erro ao sincronizar jogos existentes.");
+                    logger.Error(ex, "HydraDatabaseSynchronizer: Failed to synchronize existing games.");
                 }
             }
 
@@ -130,10 +129,11 @@ namespace HydraPlaynite.Services
         /// <summary>
         /// Sincroniza o estado de instalação e limpa flags de desinstalação interrompidas caso não haja watcher ativo.
         /// </summary>
-        public static bool SyncInstallationState(Game game, HydraGameRecord record)
+        public static bool SyncInstallationState(Game game, HydraGameRecord record, bool keepInstalledIfFilesExistOnDisk = false)
         {
             bool changed = false;
-            bool isInstalledOnDisk = !string.IsNullOrWhiteSpace(record.ExecutablePath) && File.Exists(record.ExecutablePath);
+            bool isInstalledInHydra = !string.IsNullOrWhiteSpace(record.ExecutablePath) && File.Exists(record.ExecutablePath);
+            bool effectiveInstalled = isInstalledInHydra || (keepInstalledIfFilesExistOnDisk && HasExecutablePresentOnDisk(game));
 
             if (game.IsUninstalling && !HydraUninstallController.IsUninstallActive(game.Id))
             {
@@ -141,13 +141,13 @@ namespace HydraPlaynite.Services
                 changed = true;
             }
 
-            if (game.IsInstalled != isInstalledOnDisk)
+            if (game.IsInstalled != effectiveInstalled)
             {
-                game.IsInstalled = isInstalledOnDisk;
+                game.IsInstalled = effectiveInstalled;
                 changed = true;
             }
 
-            if (isInstalledOnDisk &&
+            if (isInstalledInHydra &&
                 !string.IsNullOrWhiteSpace(record.InstallDirectory) &&
                 !string.Equals(game.InstallDirectory, record.InstallDirectory, StringComparison.OrdinalIgnoreCase))
             {
@@ -159,9 +159,11 @@ namespace HydraPlaynite.Services
         }
 
         /// <summary>
-        /// Atualiza o estado de instalação de jogos que foram removidos da biblioteca do Hydra Launcher.
+        /// Atualiza o estado de instalação de jogos removidos da biblioteca do Hydra Launcher.
+        /// Por padrão marca como não instalado; se keepInstalledIfFilesExistOnDisk estiver ativo,
+        /// mantém como instalado enquanto o executável existir no disco sem sincronizar metadados do Hydra.
         /// </summary>
-        public static bool SyncInstallationStateForRemovedHydraGame(Game game)
+        public static bool SyncInstallationStateForRemovedHydraGame(Game game, bool keepInstalledIfFilesExistOnDisk = false)
         {
             bool changed = false;
 
@@ -174,6 +176,20 @@ namespace HydraPlaynite.Services
             if (!game.IsInstalled)
                 return changed;
 
+            if (keepInstalledIfFilesExistOnDisk && HasExecutablePresentOnDisk(game))
+            {
+                return changed;
+            }
+
+            game.IsInstalled = false;
+            return true;
+        }
+
+        private static bool HasExecutablePresentOnDisk(Game game)
+        {
+            if (game == null)
+                return false;
+
             if (game.GameActions != null)
             {
                 foreach (GameAction action in game.GameActions)
@@ -181,10 +197,7 @@ namespace HydraPlaynite.Services
                     if (action != null && action.Type == GameActionType.File && !string.IsNullOrWhiteSpace(action.Path))
                     {
                         if (File.Exists(action.Path))
-                            return changed;
-
-                        game.IsInstalled = false;
-                        return true;
+                            return true;
                     }
                 }
             }
@@ -193,11 +206,48 @@ namespace HydraPlaynite.Services
             {
                 string remainingExe = HydraRepository.FindBestExecutableInFolder(game.InstallDirectory, game.Name);
                 if (!string.IsNullOrEmpty(remainingExe))
-                    return changed;
+                    return true;
             }
 
-            game.IsInstalled = false;
-            return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Migra jogos importados em versões anteriores para usar GetPlayActions dinâmico (IncludeLibraryPluginAction = true),
+        /// removendo apenas ações padrão geradas pelo plugin e preservando ações personalizadas do usuário.
+        /// </summary>
+        public static bool MigrateLegacyPluginActions(Game game)
+        {
+            if (game == null)
+                return false;
+
+            bool changed = false;
+
+            if (!game.IncludeLibraryPluginAction)
+            {
+                game.IncludeLibraryPluginAction = true;
+                changed = true;
+            }
+
+            if (game.GameActions != null && game.GameActions.Count > 0)
+            {
+                List<GameAction> toRemove = new List<GameAction>();
+                foreach (GameAction action in game.GameActions)
+                {
+                    if (HydraPlayActionFactory.IsLegacyPluginGeneratedAction(action))
+                    {
+                        toRemove.Add(action);
+                    }
+                }
+
+                foreach (GameAction legacy in toRemove)
+                {
+                    game.GameActions.Remove(legacy);
+                    changed = true;
+                }
+            }
+
+            return changed;
         }
 
         public static bool SyncPlaytimeAndInstallSize(Game game, HydraGameRecord record)
@@ -228,18 +278,16 @@ namespace HydraPlaynite.Services
             return changed;
         }
 
-        private bool SyncSourceAndPlayActions(Game game, HydraGameRecord record, HydraLibrarySettings settings)
+        private bool SyncSource(Game game)
         {
             GameSource targetSource = GetOrCreateSource(HydraOriginDetector.DefaultPlayniteSourceName);
             if (targetSource != null && game.SourceId != targetSource.Id)
             {
                 game.SourceId = targetSource.Id;
+                return true;
             }
 
-            List<GameAction> actions = HydraPlayActionFactory.CreateActions(record, settings.LaunchViaHydraUri, localizer);
-            game.GameActions = HydraPlayActionFactory.ToObservableCollection(actions);
-            game.IncludeLibraryPluginAction = false;
-            return true;
+            return false;
         }
 
         private bool SyncGameArtwork(Game game, HydraGameRecord record, bool overwriteWithCustomMedia)

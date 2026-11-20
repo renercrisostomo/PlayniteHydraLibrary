@@ -153,7 +153,7 @@ namespace HydraPlaynite.Services
             {
                 if (logger != null)
                 {
-                    logger.Warn(ex, "HydraLocalizer: Falha ao carregar arquivo de idioma " + filePath);
+                    logger.Warn(ex, "HydraLocalizer: Failed to load localization file " + filePath);
                 }
             }
         }

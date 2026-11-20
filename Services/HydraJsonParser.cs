@@ -43,7 +43,16 @@ namespace HydraPlaynite.Services
                 char c = json[i];
                 if (c == '"')
                 {
-                    dict[key] = ReadJsonString(json, ref i, n);
+                    string strVal = ReadJsonString(json, ref i, n);
+                    if (string.IsNullOrWhiteSpace(strVal) &&
+                        string.Equals(key, "executablePath", StringComparison.OrdinalIgnoreCase))
+                    {
+                        dict[key] = ExplicitNullMarker;
+                    }
+                    else
+                    {
+                        dict[key] = strVal;
+                    }
                 }
                 else if (c == '{' || c == '[')
                 {

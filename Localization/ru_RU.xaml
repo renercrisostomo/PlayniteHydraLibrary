@@ -12,9 +12,12 @@
     <sys:String x:Key="LOCPlayniteHydra_LaunchViaHydraUri">Запускать игры через Hydra (открывает Hydra в фоне для Cloud Save и достижений)</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_RecompProtocolHint">Для игр Recomp выберите «Версия для ПК» при запуске игры в Hydra и отметьте «Больше не спрашивать».</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_AutoSyncPlaytime">Автоматически синхронизировать время в игре с Hydra</sys:String>
-    <sys:String x:Key="LOCPlayniteHydra_ImportUninstalled">Импортировать также неустановленные игры</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ImportInstalled">Импортировать установленные игры</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_ImportUninstalled">Импортировать неустановленные игры</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_KeepInstalledIfFilesExist">Оставлять игры установленными, если файлы всё ещё есть на диске (даже после удаления или отвязки в Hydra)</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_UpdateExistingOnRefresh">Обновлять обложки и иконки уже импортированных игр при обновлении библиотеки</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_BtnRestoreDefaults">Восстановить по умолчанию</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_LinkTroubleshooting">Устранение неполадок</sys:String>
 
     <!-- Действия запуска и удаления игры -->
     <sys:String x:Key="LOCPlayniteHydra_ActionPlay">Играть</sys:String>
@@ -22,5 +25,10 @@
     <sys:String x:Key="LOCPlayniteHydra_ActionLaunchDirectExe">Запустить напрямую (.exe)</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_ActionUninstall">Удалить через клиент Hydra</sys:String>
     <sys:String x:Key="LOCPlayniteHydra_ErrorClientNotFound">Установка Hydra Launcher не найдена.</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_DialogUninstallTitle">Удаление через Hydra</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_DialogUninstallMessage">Чтобы удалить «{0}», удалите файлы игры, удалите её из библиотеки или нажмите «Очистить» рядом с путём к исполняемому файлу в Hydra. Для игр Recomp также удалите версию для ПК в разделе «Свойства → Диски».</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_DialogUninstallMessageKeepFiles">Чтобы удалить «{0}», удалите файлы игры в Hydra Launcher (или удалите папку вручную). Для игр Recomp также удалите версию для ПК в разделе «Свойства → Диски».</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_DialogBtnOpenHydra">Открыть Hydra</sys:String>
+    <sys:String x:Key="LOCPlayniteHydra_DialogBtnCancel">Отмена</sys:String>
 
 </ResourceDictionary>

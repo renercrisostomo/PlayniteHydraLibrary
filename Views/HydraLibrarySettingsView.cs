@@ -1,7 +1,11 @@
+using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using HydraPlaynite.Services;
 using HydraPlaynite.Settings;
 
@@ -9,6 +13,7 @@ namespace HydraPlaynite.Views
 {
     public class HydraLibrarySettingsView : UserControl
     {
+        private const string TroubleshootingWikiUrl = "https://github.com/renercrisostomo/PlayniteHydraLibrary/wiki/Troubleshooting";
         private readonly HydraLocalizer localizer;
 
         public HydraLibrarySettingsView(HydraLibrary plugin, HydraLocalizer localizer)
@@ -35,14 +40,18 @@ namespace HydraPlaynite.Views
             root.Children.Add(CreateNoAuthBanner());
             root.Children.Add(CreateSectionHeader("LOCPlayniteHydra_SectionBehavior", topMargin: 4));
 
+            root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_ImportInstalled", "ImportInstalledGames"));
+            root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_ImportUninstalled", "ImportUninstalledGames"));
+
             CheckBox chkLaunchViaHydra = CreateSettingCheckBox("LOCPlayniteHydra_LaunchViaHydraUri", "LaunchViaHydraUri");
             root.Children.Add(chkLaunchViaHydra);
             root.Children.Add(CreateConditionalHint("LOCPlayniteHydra_RecompProtocolHint", chkLaunchViaHydra));
 
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_AutoSyncPlaytime", "AutoSyncPlaytimeOnStartup"));
-            root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_ImportUninstalled", "ImportUninstalledGames"));
+            root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_KeepInstalledIfFilesExist", "KeepInstalledIfFilesExistOnDisk"));
             root.Children.Add(CreateSettingCheckBox("LOCPlayniteHydra_UpdateExistingOnRefresh", "UpdateExistingGamesOnRefresh"));
             root.Children.Add(CreateRestoreDefaultsButton());
+            root.Children.Add(CreateTroubleshootingLink());
 
             return root;
         }
@@ -165,10 +174,38 @@ namespace HydraPlaynite.Views
                 Content = T("LOCPlayniteHydra_BtnRestoreDefaults"),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(14, 8, 14, 8),
-                Margin = new Thickness(0, 16, 0, 10)
+                Margin = new Thickness(0, 16, 0, 14)
             };
             btnRestoreDefaults.Click += OnRestoreDefaultsClicked;
             return btnRestoreDefaults;
+        }
+
+        private TextBlock CreateTroubleshootingLink()
+        {
+            Hyperlink link = new Hyperlink(new Run(T("LOCPlayniteHydra_LinkTroubleshooting")))
+            {
+                NavigateUri = new Uri(TroubleshootingWikiUrl)
+            };
+            link.RequestNavigate += OnTroubleshootingNavigate;
+
+            TextBlock container = new TextBlock
+            {
+                Margin = new Thickness(0, 4, 0, 6)
+            };
+            container.Inlines.Add(link);
+            return container;
+        }
+
+        private void OnTroubleshootingNavigate(object sender, RequestNavigateEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+                e.Handled = true;
+            }
+            catch
+            {
+            }
         }
 
         private void OnRestoreDefaultsClicked(object sender, RoutedEventArgs e)

@@ -78,6 +78,26 @@ namespace HydraPlaynite
             return new HydraLibrarySettingsView(this, localizer);
         }
 
+        public override IEnumerable<PlayController> GetPlayActions(GetPlayActionsArgs args)
+        {
+            if (args == null || args.Game == null || args.Game.PluginId != Id)
+            {
+                yield break;
+            }
+
+            HydraGameRecord activeRecord = FindActiveHydraRecord(args.Game.GameId);
+            List<PlayController> controllers = HydraPlayActionFactory.CreatePlayControllers(
+                args.Game,
+                activeRecord,
+                settings.LaunchViaHydraUri,
+                localizer);
+
+            foreach (PlayController controller in controllers)
+            {
+                yield return controller;
+            }
+        }
+
         public override IEnumerable<UninstallController> GetUninstallActions(GetUninstallActionsArgs args)
         {
             if (args.Game.PluginId != Id)
@@ -85,12 +105,12 @@ namespace HydraPlaynite
                 yield break;
             }
 
-            yield return new HydraUninstallController(args.Game, repository, new HydraClient(LibraryIcon), localizer, logger);
+            yield return new HydraUninstallController(args.Game, repository, new HydraClient(LibraryIcon), localizer, logger, PlayniteApi, keepInstalledIfFilesExistOnDisk: settings.KeepInstalledIfFilesExistOnDisk);
         }
 
-        public int ApplySettingsOnSave(bool forceUpdateActions, bool forceUpdateArtwork)
+        public int ApplySettingsOnSave(bool forceUpdateArtwork)
         {
-            return synchronizer.SynchronizeExistingGames(settings, forceUpdateActions: forceUpdateActions, forceUpdateArtwork: forceUpdateArtwork);
+            return synchronizer.SynchronizeExistingGames(settings, forceUpdateArtwork: forceUpdateArtwork);
         }
 
         public override IEnumerable<GameMetadata> GetGames(LibraryGetGamesArgs args)
@@ -104,7 +124,6 @@ namespace HydraPlaynite
 
             synchronizer.SynchronizeExistingGames(
                 settings,
-                forceUpdateActions: settings.UpdateExistingGamesOnRefresh,
                 forceUpdateArtwork: settings.UpdateExistingGamesOnRefresh,
                 preloadedRecords: allRecords);
 
@@ -120,10 +139,32 @@ namespace HydraPlaynite
 
             if (logger != null)
             {
-                logger.Info(string.Format("PlayniteHydraLibrary v0.8.0: {0} registros lidos do Hydra, {1} jogos enviados ao Playnite.", allRecords.Count, importedGames.Count));
+                logger.Info(string.Format("PlayniteHydraLibrary v0.9.0: Read {0} Hydra records, imported {1} games into Playnite.", allRecords.Count, importedGames.Count));
             }
 
             return importedGames;
+        }
+
+        private HydraGameRecord FindActiveHydraRecord(string gameId)
+        {
+            if (string.IsNullOrWhiteSpace(gameId))
+                return null;
+
+            List<HydraGameRecord> allRecords = repository.LoadAllGames();
+            if (allRecords == null)
+                return null;
+
+            foreach (HydraGameRecord record in allRecords)
+            {
+                if (record != null &&
+                    !record.IsDeleted &&
+                    string.Equals(record.UniqueKey, gameId, StringComparison.OrdinalIgnoreCase))
+                {
+                    return record;
+                }
+            }
+
+            return null;
         }
 
         private bool ShouldImportRecord(HydraGameRecord record, out bool isExecutableInstalled)
@@ -134,6 +175,8 @@ namespace HydraPlaynite
                 return false;
 
             isExecutableInstalled = !string.IsNullOrWhiteSpace(record.ExecutablePath) && File.Exists(record.ExecutablePath);
+            if (isExecutableInstalled && !settings.ImportInstalledGames)
+                return false;
             if (!isExecutableInstalled && !settings.ImportUninstalledGames)
                 return false;
 
@@ -142,8 +185,6 @@ namespace HydraPlaynite
 
         private GameMetadata BuildGameMetadata(HydraGameRecord record, bool isExecutableInstalled)
         {
-            List<GameAction> actions = HydraPlayActionFactory.CreateActions(record, settings.LaunchViaHydraUri, localizer);
-
             GameMetadata metadata = new GameMetadata
             {
                 Source = new MetadataNameProperty(HydraOriginDetector.DefaultPlayniteSourceName),
@@ -155,7 +196,6 @@ namespace HydraPlaynite
                 LastActivity = record.LastTimePlayed,
                 InstallSize = record.InstalledSizeInBytes,
                 Platforms = new HashSet<MetadataProperty> { new MetadataSpecProperty("pc_windows") },
-                GameActions = actions,
                 Icon = ResolveMetadataIcon(record, isExecutableInstalled)
             };
 

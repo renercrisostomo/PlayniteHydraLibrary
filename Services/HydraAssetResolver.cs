@@ -205,7 +205,7 @@ namespace HydraPlaynite.Services
             {
                 using (TimedWebClient client = new TimedWebClient(DownloadTimeoutMilliseconds))
                 {
-                    client.Headers.Add("User-Agent", "Mozilla/5.0 PlayniteHydraLibrary/0.8.0");
+                    client.Headers.Add("User-Agent", "Mozilla/5.0 PlayniteHydraLibrary/0.9.0");
                     client.DownloadFile(imageUrl, tempFile);
                 }
 
